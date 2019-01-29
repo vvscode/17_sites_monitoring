@@ -7,8 +7,8 @@ import argparse
 from datetime import datetime, timedelta
 import collections
 
-Url_Info = collections.namedtuple(
-    'Url_Info', ['url', 'domain', 'is_prepaid', 'is_status_200', 'notes'])
+url_info = collections.namedtuple(
+    'url_info', ['url', 'domain', 'is_prepaid', 'is_status_200', 'notes'])
 
 
 def load_urls4check(path):
@@ -24,11 +24,9 @@ def validate_response_status(url):
             return []
         return ['Status code is {}'.format(requests.get(url).ok)]
     except requests.exceptions.ConnectionError:
-        notes.append('Error with connection to server')
+        return ['Error with connection to server']
     except requests.exceptions.InvalidSchema:
-        notes.append('Invalid schema')
-    return False
-
+        return ['Invalid schema']
 
 def get_domain_expiration_date(domain_name):
     whois_info = whois.whois(domain_name)
@@ -44,6 +42,8 @@ def validate_prepayment(domain):
     critical_prepaid_date = datetime.now() + timedelta(days=prepaid_days_limit)
     try:
         expiration_date = get_domain_expiration_date(domain)
+        if not expiration_date:
+            return ['Expiration date not available']
         if expiration_date < critical_prepaid_date:
             return []
         return ["Prepaid till {}".format(expiration_date.isoformat())]
@@ -61,7 +61,7 @@ def get_url_info(url):
     notes.extend(response_validation_errors)
     notes.extend(prepaid_validation_errors)
 
-    return Url_Info(
+    return url_info(
         url=url,
         domain=domain,
         is_prepaid=not len(prepaid_validation_errors),
@@ -87,13 +87,13 @@ if __name__ == '__main__':
     table.align = 'l'
 
     for url in domains_list:
-        url_info = get_url_info(url)
+        info = get_url_info(url)
         table.add_row([
-            url_info.url,
-            url_info.domain,
-            'Yes' if url_info.is_safety_prepaid else 'No',
-            'Yes' if url_info.is_status_200 else 'No',
-            '\n'.join(url_info.notes)
+            info.url,
+            info.domain,
+            'Yes' if info.is_prepaid else 'No',
+            'Yes' if info.is_status_200 else 'No',
+            '\n'.join(info.notes)
         ])
 
     print(table)
