@@ -1,0 +1,5 @@
+http://ya.ru
+https://tut.by/about
+http://xxxx
+http://some_non-existing.domain.ru
+xys://some-dummy-url.ru
