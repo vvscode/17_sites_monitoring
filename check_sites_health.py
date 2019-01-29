@@ -5,6 +5,10 @@ from urllib.parse import urlparse
 from prettytable import PrettyTable
 import argparse
 from datetime import datetime, timedelta
+import collections
+
+UrlInfo = collections.namedtuple(
+    'UrlInfo', ['url', 'domain', 'is_prepaid', 'is_status_200', 'notes'])
 
 
 def load_urls4check(path):
@@ -12,9 +16,13 @@ def load_urls4check(path):
         return [line.strip() for line in file.readlines()]
 
 
-def is_server_respond_with_200(url, notes=[]):
+def validate_response_status(url):
+    notes = []
     try:
-        return requests.get(url).ok
+        response = requests.get(url)
+        if response.ok:
+            return []
+        return ['Status code is {}'.format(requests.get(url).ok)]
     except requests.exceptions.ConnectionError:
         notes.append('Error with connection to server')
     except requests.exceptions.InvalidSchema:
@@ -31,24 +39,35 @@ def get_domain_from_url(url):
     return urlparse(url).hostname
 
 
-def check_if_is_safety_prepaid(domain, notes=[]):
+def validate_prepayment(domain):
     prepaid_days_limit = 30
     critical_prepaid_date = datetime.now() + timedelta(days=prepaid_days_limit)
     try:
         expiration_date = get_domain_expiration_date(domain)
-        return expiration_date < critical_prepaid_date
+        if expiration_date < critical_prepaid_date:
+            return []
+        return ["Prepaid till {}".format(expiration_date.isoformat())]
     except ConnectionRefusedError:
-        notes.append('Error with connection to whois server')
-    return False
+        return ['Error with connection to whois server']
 
 
 def get_url_info(url):
     notes = []
     domain = get_domain_from_url(url)
-    is_safety_prepaid = check_if_is_safety_prepaid(domain, notes=notes)
-    is_status_200 = is_server_respond_with_200(url, notes=notes)
 
-    return [url, domain, is_safety_prepaid, is_status_200, notes]
+    response_validation_errors = validate_response_status(url)
+    prepaid_validation_errors = validate_prepayment(domain)
+
+    notes.extend(response_validation_errors)
+    notes.extend(prepaid_validation_errors)
+
+    return UrlInfo(
+        url=url,
+        domain=domain,
+        is_prepaid=not len(prepaid_validation_errors),
+        is_status_200=not len(response_validation_errors),
+        notes=notes
+    )
 
 
 if __name__ == '__main__':
@@ -68,14 +87,13 @@ if __name__ == '__main__':
     table.align = 'l'
 
     for url in domains_list:
-        [url, domain, is_safety_prepaid,
-         is_status_200, notes] = get_url_info(url)
+        url_info = get_url_info(url)
         table.add_row([
-            url,
-            domain,
-            'Yes' if is_safety_prepaid else 'No',
-            'Yes' if is_status_200 else 'No',
-            '\n'.join(notes)
+            url_info.url,
+            url_info.domain,
+            'Yes' if url_info.is_safety_prepaid else 'No',
+            'Yes' if url_info.is_status_200 else 'No',
+            '\n'.join(url_info.notes)
         ])
 
     print(table)
