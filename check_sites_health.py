@@ -7,8 +7,8 @@ import argparse
 from datetime import datetime, timedelta
 import collections
 
-UrlInfo = collections.namedtuple(
-    'UrlInfo', ['url', 'domain', 'is_prepaid', 'is_status_200', 'notes'])
+Url_Info = collections.namedtuple(
+    'Url_Info', ['url', 'domain', 'is_prepaid', 'is_status_200', 'notes'])
 
 
 def load_urls4check(path):
@@ -61,7 +61,7 @@ def get_url_info(url):
     notes.extend(response_validation_errors)
     notes.extend(prepaid_validation_errors)
 
-    return UrlInfo(
+    return Url_Info(
         url=url,
         domain=domain,
         is_prepaid=not len(prepaid_validation_errors),
