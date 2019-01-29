@@ -1,5 +1,5 @@
 import requests
-import ph4whois
+import whois
 import sys
 from urllib.parse import urlparse
 from prettytable import PrettyTable
@@ -23,7 +23,7 @@ def is_server_respond_with_200(url, notes=[]):
 
 
 def get_domain_expiration_date(domain_name):
-    whois_info = ph4whois.whois(domain_name)
+    whois_info = whois.whois(domain_name)
     return whois_info.expiration_date
 
 
@@ -37,9 +37,7 @@ def check_if_is_safety_prepaid(domain, notes=[]):
     try:
         expiration_date = get_domain_expiration_date(domain)
         return expiration_date < critical_prepaid_date
-    except AttributeError:
-        notes.append('Error with connection to whois server')
-    except TypeError:
+    except ConnectionRefusedError:
         notes.append('Error with connection to whois server')
     return False
 
