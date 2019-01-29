@@ -87,13 +87,13 @@ if __name__ == '__main__':
     table.align = 'l'
 
     for url in domains_list:
-        info = get_url_info(url)
+        site_info = get_url_info(url)
         table.add_row([
-            info.url,
-            info.domain,
-            'Yes' if info.is_prepaid else 'No',
-            'Yes' if info.is_status_200 else 'No',
-            '\n'.join(info.notes)
+            site_info.url,
+            site_info.domain,
+            'Yes' if site_info.is_prepaid else 'No',
+            'Yes' if site_info.is_status_200 else 'No',
+            '\n'.join(site_info.notes)
         ])
 
     print(table)
