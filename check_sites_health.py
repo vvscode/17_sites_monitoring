@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 import collections
 
 url_info = collections.namedtuple(
-    "url_info", ["url", "domain", "is_prepaid", "is_status_200", "notes"])
+    "url_info", ["url", "domain", "is_prepaid", "is_status_ok", "notes"])
 
 
 def load_urls4check(path):
@@ -16,10 +16,10 @@ def load_urls4check(path):
         return [line.strip() for line in file.readlines()]
 
 
-def is_status_code_equal(url, status_code):
+def is_status_code_ok(url):
     try:
         response = requests.get(url)
-        return response.status_code == status_code, None
+        return response.ok, None
 
     except requests.exceptions.ConnectionError:
         return False, "Error with connection to server"
@@ -55,9 +55,8 @@ def get_url_info(url):
     notes = []
     domain = get_domain_from_url(url)
     prepaid_period = 30
-    expected_status_code = 200
 
-    is_status_200, response_validation_error = is_status_code_equal(url, expected_status_code)
+    is_status_ok, response_validation_error = is_status_code_ok(url)
     if response_validation_error:
         notes.append(response_validation_error)
 
@@ -70,7 +69,7 @@ def get_url_info(url):
         url=url,
         domain=domain,
         is_prepaid=is_prepaid,
-        is_status_200=is_status_200,
+        is_status_ok=is_status_ok,
         notes=notes
     )
 
@@ -88,7 +87,7 @@ if __name__ == "__main__":
     print("List contains {} domain(s)".format(len(domains_list)))
     table = PrettyTable()
     table.field_names = ["URL", "Domain",
-                         "Prepaid for a month", "Status 200", "Notes"]
+                         "Prepaid for a month", "Status OK", "Notes"]
     table.align = "l"
 
     for url in domains_list:
@@ -97,7 +96,7 @@ if __name__ == "__main__":
             site_info.url,
             site_info.domain,
             "Yes" if site_info.is_prepaid else "No",
-            "Yes" if site_info.is_status_200 else "No",
+            "Yes" if site_info.is_status_ok else "No",
             "\n".join(site_info.notes)
         ])
 
